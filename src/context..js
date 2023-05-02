@@ -1,47 +1,65 @@
 import React, {useState, useContext, useEffect} from 'react';
 import { useCallback } from 'react';
-const URL = "http://openlibrary.org/search.json?title=";
+import axios from 'axios';
+import Mapdata from './Mapdata';
 const AppContext = React.createContext();
 
+function createItem(singledata) {
+    return<Mapdata
+    au={singledata.author}
+    li={singledata.link}
+    na={singledata.name}
+    pro={singledata.provider}
+    />
+}
+
 const AppProvider = ({children}) => {
-    const [searchTerm, setSearchTerm] = useState("the lost world");
+    const [searchTerm, setSearchTerm] = useState(null);
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [resultTitle, setResultTitle] = useState("");
-
+    const [da,setDa]=useState([]);
+    const requestData = {
+        "keyword": searchTerm,
+    }
+    
     const fetchBooks = useCallback(async() => {
         setLoading(true);
         try{
-            const response = await fetch(`${URL}${searchTerm}`);
-            const data = await response.json();
-            const {docs} = data;
-
+            const response =await axios.post('http://13.233.110.169/scrape', requestData);
+            // console.log(response);
+            var sata =  response.data;
+            setDa(response.data);
+            console.log(response.data);
+            const {docs} = sata;
+            
             if(docs){
                 const newBooks = docs.slice(0, 20).map((bookSingle) => {
-                    const {key, author_name, cover_i, edition_count, first_publish_year, title} = bookSingle;
-
+                    const {key, name, author, link, provider} = bookSingle;
                     return {
                         id: key,
-                        author: author_name,
-                        cover_id: cover_i,
-                        edition_count: edition_count,
-                        first_publish_year: first_publish_year,
-                        title: title
+                        author: author,
+                        title: name,
+                        link: link,
+                        provider: provider,
+                        
                     }
                 });
+            
+                console.log(newBooks);
+                // setBooks(newBooks);
 
-                setBooks(newBooks);
-
-                if(newBooks.length > 1){
-                    setResultTitle("Your Search Result");
-                } else {
-                    setResultTitle("No Search Result Found!")
-                }
+                // if(newBooks.length > 1){
+                //     setResultTitle("Your Search Result");
+                // } else {
+                //     setResultTitle("No Search Result Found!")
+                // }
             } else {
-                setBooks([]);
+                // setBooks([]);
                 setResultTitle("No Search Result Found!");
             }
-            setLoading(false);
+        
+             setLoading(false);
         } catch(error){
             console.log(error);
             setLoading(false);
@@ -51,13 +69,16 @@ const AppProvider = ({children}) => {
     useEffect(() => {
         fetchBooks();
     }, [searchTerm, fetchBooks]);
-
+  
     return (
+        <div>
         <AppContext.Provider value = {{
             loading, books, setSearchTerm, resultTitle, setResultTitle,
         }}>
             {children}
         </AppContext.Provider>
+        {da.map(createItem)}
+        </div>
     )
 }
 
